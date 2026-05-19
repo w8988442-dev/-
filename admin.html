@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'PingFang SC',sans-serif;background:#0F1117;color:#E2E8F0;min-height:100vh}
+.page{display:none;min-height:100vh}
+.page.show{display:block}
+.center{max-width:420px;margin:0 auto;padding:24px 16px}
+.logo{text-align:center;margin-bottom:32px;padding-top:40px}
+.logo-icon{font-size:48px;margin-bottom:12px}
+.logo-title{font-size:22px;font-weight:900}
+.logo-sub{font-size:13px;color:#6B7280;margin-top:4px}
+.card{background:#161B27;border:1px solid #1E293B;border-radius:16px;padding:20px;margin-bottom:14px}
+.form-label{font-size:12px;color:#9CA3AF;display:block;margin-bottom:6px}
+.form-input{width:100%;background:#0F1117;border:1px solid #1E293B;border-radius:8px;padding:11px 14px;color:#E2E8F0;font-size:14px;outline:none;margin-bottom:14px}
+.form-input:focus{border-color:#6366F1}
+.btn{width:100%;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
+.btn-primary{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff}
+.btn-secondary{background:#1E293B;color:#9CA3AF}
+.btn-green{background:linear-gradient(135deg,#059669,#10B981);color:#fff}
+.btn-red{background:#7F1D1D;color:#FCA5A5;border:1px solid #EF4444}
+.btn-sm{border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer}
+.err{color:#F87171;font-size:12px;text-align:center;margin-bottom:10px;min-height:18px}
+.notif{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 20px;border-radius:10px;font-weight:600;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:340px;text-align:center}
+.notif.success{background:#064E3B;border:1px solid #10B981;color:#6EE7B7}
+.notif.error{background:#7F1D1D;border:1px solid #EF4444;color:#FCA5A5}
+.header{background:linear-gradient(135deg,#1A1F2E,#16213E);border-bottom:1px solid #1E293B;padding:0 16px;position:sticky;top:0;z-index:100}
+.header-inner{max-width:1000px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.content{max-width:1000px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{padding:6px 12px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#9CA3AF}
+.tab.active{background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff}
+.customer-card{background:#161B27;border:1px solid #1E293B;border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.customer-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat-card{border-radius:12px;padding:16px}
+.rewards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.reward-card{background:#161B27;border:1px solid #1E293B;border-radius:12px;padding:16px;text-align:center}
+.prize-tier-card{background:#0F1117;border:1px solid #1E293B;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;z-index:1000}
+.modal{background:#161B27;border:1px solid #1E293B;border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto}
+.modal-title{font-weight:700;font-size:15px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:#6B7280;font-size:22px;cursor:pointer}
+.log-item{padding:10px 0;border-bottom:1px solid #1E293B;font-size:12px}
+.log-time{color:#6B7280;font-size:11px}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.prize-option{border-radius:9px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px;border:1px solid #1E293B;background:#0F1117}
+.redeem-option{border-radius:9px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px;border:1px solid #1E293B;background:#0F1117}
+.redeem-option.selected{border-color:#10B981;background:#0A2818}
+.redeem-option.disabled{opacity:.35;cursor:not-allowed}
+.lock-screen{position:fixed;inset:0;background:#0F1117;z-index:9000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.lock-screen.hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- 锁定提示 -->
+<div class="lock-screen hidden" id="lock-screen">
+  <div style="font-size:48px">🔒</div>
+  <div style="font-size:18px;font-weight:700;color:#F87171">后台已锁定</div>
+  <div style="font-size:13px;color:#6B7280" id="lock-msg">连续输错5次，锁定10分钟</div>
+</div>
+
+<!-- 第一步：访问密码 -->
+<div class="page show" id="pg-access">
+  <div class="center">
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <div class="logo-title">后台访问验证</div>
+      <div class="logo-sub">请输入访问密码</div>
+    </div>
+    <div class="card">
+      <label class="form-label">访问密码</label>
+      <input class="form-input" id="a-pass" type="password" placeholder="请输入访问密码" onkeydown="if(event.key==='Enter')checkAccess()" />
+      <div class="err" id="a-err"></div>
+      <button class="btn btn-primary" onclick="checkAccess()">验 证</button>
+    </div>
+  </div>
+</div>
+
+<!-- 第二步：管理员登录 -->
+<div class="page" id="pg-admin-login">
+  <div class="center">
+    <div class="logo">
+      <div class="logo-icon">👤</div>
+      <div class="logo-title">管理员登录</div>
+      <div class="logo-sub">请输入管理员账号密码</div>
+    </div>
+    <div class="card">
+      <label class="form-label">账号</label>
+      <input class="form-input" id="al-user" placeholder="管理员账号" />
+      <label class="form-label">密码</label>
+      <input class="form-input" id="al-pass" type="password" placeholder="管理员密码" onkeydown="if(event.key==='Enter')checkAdmin()" />
+      <div class="err" id="al-err"></div>
+      <button class="btn btn-primary" onclick="checkAdmin()">登 录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 主后台 -->
+<div class="page" id="pg-dash">
+  <div class="header">
+    <div class="header-inner">
+      <div style="font-weight:900;font-size:15px">🎰 后台管理</div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('customers')" id="t-customers">👥 客户</button>
+        <button class="tab" onclick="switchTab('rewards')" id="t-rewards">🎁 奖品</button>
+        <button class="tab" onclick="switchTab('prizes')" id="t-prizes">🏆 奖项</button>
+        <button class="tab" onclick="switchTab('msgs')" id="t-msgs">📬 消息</button>
+        <button class="tab" onclick="switchTab('logs')" id="t-logs">📋 日志</button>
+        <button class="tab btn-secondary" onclick="adminLogout()" style="color:#F87171">退出</button>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 客户 -->
+    <div id="tab-customers">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <input class="form-input" id="search-input" placeholder="搜索姓名或手机号..." style="margin:0" oninput="renderCustomers(this.value)" />
+        <button class="btn btn-primary" style="width:auto;white-space:nowrap;padding:0 16px;margin:0" onclick="openModal('add')">+ 新增</button>
+      </div>
+      <div id="customer-list"></div>
+    </div>
+
+    <!-- 奖品 -->
+    <div id="tab-rewards" style="display:none">
+      <div class="section-header">
+        <div style="font-weight:700;font-size:14px">🎁 可兑换奖品</div>
+        <button class="btn btn-primary" style="width:auto;padding:8px 16px;margin:0" onclick="openAddReward()">+ 新增</button>
+      </div>
+      <div class="rewards-grid" id="rewards-grid"></div>
+    </div>
+
+    <!-- 奖项 -->
+    <div id="tab-prizes" style="display:none">
+      <div class="section-header">
+        <div style="font-weight:700;font-size:14px">🏆 奖项设置</div>
+        <button class="btn btn-primary" style="width:auto;padding:8px 16px;margin:0" onclick="openAddPrize()">+ 新增奖项</button>
+      </div>
+      <div style="font-size:12px;color:#6B7280;margin-bottom:14px">自定义奖项名称和积分</div>
+      <div id="prize-tiers-list"></div>
+    </div>
+
+    <!-- 消息 -->
+    <div id="tab-msgs" style="display:none">
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px">📬 发送消息给用户</div>
+        <label class="form-label">选择用户</label>
+        <select class="form-input" id="msg-target" style="margin-bottom:14px">
+          <option value="">-- 选择用户 --</option>
+        </select>
+        <label class="form-label">消息内容</label>
+        <textarea class="form-input" id="msg-content" rows="3" placeholder="请输入消息内容..." style="resize:none"></textarea>
+        <button class="btn btn-primary" onclick="sendMsg()">发 送</button>
+      </div>
+    </div>
+
+    <!-- 日志 -->
+    <div id="tab-logs" style="display:none">
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px">📋 操作日志</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <input class="form-input" id="log-phone-filter" placeholder="按手机号筛选" style="margin:0;flex:1" />
+          <input class="form-input" id="log-date-filter" type="date" style="margin:0;width:auto" />
+          <button class="btn btn-primary" style="width:auto;padding:8px 14px;margin:0" onclick="renderLogs()">筛选</button>
+          <button class="btn btn-secondary" style="width:auto;padding:8px 14px;margin:0" onclick="clearLogFilter()">清除</button>
+        </div>
+        <div id="log-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModalOverlay(event)">
+
+  <div class="modal" id="modal-add" style="display:none">
+    <div class="modal-title">➕ 新增客户 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <label class="form-label">姓名</label>
+    <input class="form-input" id="in-name" placeholder="请输入姓名" />
+    <label class="form-label">手机号</label>
+    <input class="form-input" id="in-phone" placeholder="请输入手机号" />
+    <div class="err" id="add-err"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="addCustomer()">确认添加</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-prize" style="display:none">
+    <div class="modal-title">🎯 记录中奖 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px" id="prize-info"></div>
+    <div id="prize-options"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="btn-confirm-prize" onclick="confirmPrize()" style="opacity:.4;pointer-events:none">确认</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-redeem" style="display:none">
+    <div class="modal-title">🎁 兑换奖品 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px" id="redeem-info"></div>
+    <div id="redeem-options"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-green" id="btn-confirm-redeem" onclick="confirmRedeem()" style="opacity:.4;pointer-events:none">确认兑换</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-history" style="display:none">
+    <div class="modal-title">📋 积分记录 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div id="history-list"></div>
+  </div>
+
+  <div class="modal" id="modal-reward-edit" style="display:none">
+    <div class="modal-title" id="reward-modal-title">奖品 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <label class="form-label">图标(emoji)</label>
+    <input class="form-input" id="r-icon" placeholder="🎁" />
+    <label class="form-label">名称</label>
+    <input class="form-input" id="r-name" placeholder="奖品名称" />
+    <label class="form-label">所需积分</label>
+    <input class="form-input" id="r-pts" type="number" placeholder="200" />
+    <label class="form-label">库存</label>
+    <input class="form-input" id="r-stock" type="number" placeholder="10" />
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveReward()">保存</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-prize-edit" style="display:none">
+    <div class="modal-title" id="prize-modal-title">奖项 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <label class="form-label">奖项名称</label>
+    <input class="form-input" id="pt-name" placeholder="例如：特等奖" />
+    <label class="form-label">获得积分</label>
+    <input class="form-input" id="pt-pts" type="number" placeholder="500" />
+    <label class="form-label">图标(emoji)</label>
+    <input class="form-input" id="pt-emoji" placeholder="🏆" />
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePrizeTier()">保存</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-reset-confirm" style="display:none">
+    <div class="modal-title">⚠️ 确认重置密码 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <div style="font-size:14px;margin-bottom:16px;color:#FCA5A5">确定要重置该用户密码为 <strong>abc12345</strong> 吗？此操作将通知用户。</div>
+    <div style="font-size:13px;color:#9CA3AF;margin-bottom:20px" id="reset-confirm-name"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-red" onclick="doResetPassword()">确认重置</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-send-pts-msg" style="display:none">
+    <div class="modal-title">💬 发消息给用户 <button class="modal-close" onclick="closeModal()">×</button></div>
+    <label class="form-label">消息内容</label>
+    <textarea class="form-input" id="direct-msg" rows="3" style="resize:none"></textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="sendDirectMsg()">发送</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="notif" class="notif" style="display:none"></div>
+
+<script>
+// ---- 状态 ----
+var ACCESS_PWD='325000';
+var ADMIN_USER='amdi000';
+var ADMIN_PASS='A39028@';
+var DEFAULT_USER_PWD='abc12345';
+var _lockKey='admin_lock';
+var _failKey='admin_fails';
+var _currentTarget=null;
+var _selectedPrize=null;
+var _selectedReward=null;
+var _editRewardId=null;
+var _editPrizeId=null;
+var _resetTargetPhone=null;
+var _directMsgPhone=null;
+
+function _gd(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function _sd(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+function showNotif(m,t){
+  var el=document.getElementById('notif');
+  el.textContent=m;el.className='notif '+(t||'success');el.style.display='block';
+  setTimeout(function(){el.style.display='none'},3000);
+}
+
+function addLog(action,phone,by){
+  var logs=_gd('logs')||[];
+  logs.unshift({time:new Date().toLocaleString('zh-CN'),action:action,phone:phone||'',by:by||'管理员'});
+  _sd('logs',logs);
+}
+
+function sendUserMsg(phone,content){
+  var msgs=_gd('msgs_'+phone)||[];
+  msgs.unshift({id:Date.now(),content:content,time:new Date().toLocaleString('zh-CN'),read:false});
+  _sd('msgs_'+phone,msgs);
+}
+
+// ---- 锁定检查 ----
+function checkLock(){
+  var lock=_gd(_lockKey);
+  if(!lock)return false;
+  var now=Date.now();
+  if(now<lock){
+    var rem=Math.ceil((lock-now)/1000/60);
+    document.getElementById('lock-screen').classList.remove('hidden');
+    document.getElementById('lock-msg').textContent='后台已锁定，还剩约'+rem+'分钟';
+    return true;
+  }
+  localStorage.removeItem(_lockKey);
+  localStorage.removeItem(_failKey);
+  document.getElementById('lock-screen').classList.add('hidden');
+  return false;
+}
+
+// ---- 访问密码 ----
+function checkAccess(){
+  if(checkLock())return;
+  var p=document.getElementById('a-pass').value.trim();
+  if(p===ACCESS_PWD){
+    document.getElementById('a-pass').value='';
+    showPage('pg-admin-login');
+    localStorage.removeItem(_failKey);
+  } else {
+    var fails=(_gd(_failKey)||0)+1;
+    _sd(_failKey,fails);
+    if(fails>=5){
+      _sd(_lockKey,Date.now()+10*60*1000);
+      document.getElementById('lock-screen').classList.remove('hidden');
+      document.getElementById('lock-msg').textContent='连续输错5次，锁定10分钟';
+    } else {
+      document.getElementById('a-err').textContent='密码错误，还剩'+(5-fails)+'次机会';
+    }
+  }
+}
+
+// ---- 管理员登录 ----
+function checkAdmin(){
+  var u=document.getElementById('al-user').value.trim();
+  var p=document.getElementById('al-pass').value.trim();
+  if(u===ADMIN_USER&&p===ADMIN_PASS){
+    document.getElementById('al-pass').value='';
+    showPage('pg-dash');
+    renderCustomers('');
+    renderMsgTargets();
+  } else {
+    document.getElementById('al-err').textContent='账号或密码错误';
+  }
+}
+
+function adminLogout(){showPage('pg-access');}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('show');});
+  document.getElementById(id).classList.add('show');
+}
+
+// ---- Tab切换 ----
+function switchTab(t){
+  ['customers','rewards','prizes','msgs','logs'].forEach(function(id){
+    var el=document.getElementById('tab-'+id);
+    if(el)el.style.display=id===t?'':'none';
+    var btn=document.getElementById('t-'+id);
+    if(btn)btn.className='tab'+(id===t?' active':'');
+  });
+  if(t==='rewards')renderRewards();
+  if(t==='prizes')renderPrizeTiers();
+  if(t==='logs')renderLogs();
+  if(t==='msgs')renderMsgTargets();
+}
+
+function getLevel(p){
+  if(p>=1000)return{label:'钻石会员',color:'#60A5FA',icon:'💎'};
+  if(p>=500)return{label:'黄金会员',color:'#FBBF24',icon:'🥇'};
+  if(p>=200)return{label:'白银会员',color:'#9CA3AF',icon:'🥈'};
+  return{label:'普通会员',color:'#6EE7B7',icon:'⭐'};
+}
+
+// ---- 客户 ----
+function renderCustomers(q){
+  var customers=_gd('customers')||[];
+  var list=customers.filter(function(c){return !q||c.name.indexOf(q)>=0||c.phone.indexOf(q)>=0;});
+  if(!list.length){document.getElementById('customer-list').innerHTML='<div style="color:#6B7280;text-align:center;padding:20px;font-size:13px">没有找到客户</div>';return;}
+  var html='';
+  list.forEach(function(c){
+    var lvl=getLevel(c.points);
+    html+='<div class="customer-card">';
+    html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">';
+    html+='<div style="width:40px;height:40px;border-radius:50%;background:'+lvl.color+'22;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid '+lvl.color+'44">'+lvl.icon+'</div>';
+    html+='<div style="flex:1"><div style="font-weight:700;font-size:14px">'+c.name+'</div>';
+    html+='<div style="font-size:11px;color:#6B7280">'+c.phone+'</div>';
+    html+='<span style="font-size:10px;color:'+lvl.color+';background:'+lvl.color+'11;border:1px solid '+lvl.color+'33;border-radius:5px;padding:2px 7px;display:inline-block;margin-top:3px">'+lvl.label+'</span></div>';
+    html+='<div style="text-align:right"><div style="font-weight:900;font-size:20px;color:#6366F1">'+c.points.toLocaleString()+'</div><div style="font-size:10px;color:#6B7280">积分</div></div></div>';
+    html+='<div class="customer-btns">';
+    html+='<button class="btn-sm" style="background:#1E293B;color:#94A3B8" onclick="openHistory(\''+c.id+'\')">📋</button>';
+    html+='<button class="btn-sm" style="background:#1B1F3A;color:#818CF8;border:1px solid #3730A3" onclick="openPrize(\''+c.id+'\')">🎯 中奖</button>';
+    html+='<button class="btn-sm" style="background:#0A2818;color:#34D399;border:1px solid #064E3B" onclick="openRedeem(\''+c.id+'\')">🎁 兑换</button>';
+    html+='<button class="btn-sm" style="background:#1F1010;color:#FCA5A5;border:1px solid #7F1D1D" onclick="openResetConfirm(\''+c.phone+'\',\''+c.name+'\')">🔑 重置密码</button>';
+    html+='<button class="btn-sm" style="background:#1E293B;color:#60A5FA" onclick="openDirectMsg(\''+c.phone+'\')">💬 发消息</button>';
+    html+='<button class="btn-sm" style="background:#1F1010;color:#F87171;border:1px solid #7F1D1D" onclick="deleteCustomer(\''+c.id+'\',\''+c.name+'\')">🗑️</button>';
+    html+='</div></div>';
+  });
+  document.getElementById('customer-list').innerHTML=html;
+}
+
+function addCustomer(){
+  var name=document.getElementById('in-name').value.trim();
+  var phone=document.getElementById('in-phone').value.trim();
+  document.getElementById('add-err').textContent='';
+  if(!name||!phone){document.getElementById('add-err').textContent='请输入姓名和手机号';return;}
+  var customers=_gd('customers')||[];
+  for(var i=0;i<customers.length;i++){if(customers[i].phone===phone){document.getElementById('add-err').textContent='该手机号已存在';return;}}
+  customers.push({id:Date.now().toString(),name:name,phone:phone,points:0,history:[]});
+  _sd('customers',customers);
+  addLog('新增客户: '+name,phone,'管理员');
+  document.getElementById('in-name').value='';document.getElementById('in-phone').value='';
+  closeModal();renderCustomers('');
+  showNotif('客户 '+name+' 添加成功！','success');
+}
+
+function deleteCustomer(id,name){
+  if(!confirm('确定删除客户「'+name+'」？'))return;
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===id;});
+  customers=customers.filter(function(x){return x.id!==id;});
+  _sd('customers',customers);
+  addLog('删除客户: '+name,c?c.phone:'','管理员');
+  renderCustomers('');
+  showNotif('已删除 '+name,'success');
+}
+
+// ---- 中奖 ----
+function openPrize(id){
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===id;});
+  if(!c)return;
+  _currentTarget=id;_selectedPrize=null;
+  document.getElementById('prize-info').textContent=c.name+' 当前积分：'+c.points;
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  var html='';
+  tiers.forEach(function(p){
+    html+='<div class="prize-option" id="po-'+p.id+'" onclick="selectPrize(\''+p.id+'\')">';
+    html+='<span style="font-size:20px">'+(p.emoji||'🏆')+'</span>';
+    html+='<div style="flex:1;font-weight:600;font-size:13px">'+p.label+'</div>';
+    html+='<div style="font-weight:700;color:#6366F1">+'+p.points+' 积分</div></div>';
+  });
+  document.getElementById('prize-options').innerHTML=html;
+  setBtnState('btn-confirm-prize',false);
+  openModal('prize');
+}
+
+function selectPrize(id){
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  _selectedPrize=tiers.find(function(p){return p.id==id;});
+  document.querySelectorAll('.prize-option').forEach(function(el){el.style.background='#0F1117';el.style.borderColor='#1E293B';});
+  var el=document.getElementById('po-'+id);
+  if(el){el.style.background='#1B1F3A';el.style.borderColor='#6366F1';}
+  setBtnState('btn-confirm-prize',true);
+}
+
+function confirmPrize(){
+  if(!_selectedPrize||!_currentTarget)return;
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===_currentTarget;});
+  if(!c)return;
+  var today=new Date().toLocaleString('zh-CN');
+  c.points+=_selectedPrize.points;
+  c.history.unshift({date:today,prize:_selectedPrize.label,pts:_selectedPrize.points});
+  _sd('customers',customers);
+  addLog('记录中奖: '+_selectedPrize.label+' +'+_selectedPrize.points+'积分',c.phone,'管理员');
+  sendUserMsg(c.phone,'🎉 恭喜您获得【'+_selectedPrize.label+'】！本次获得 +'+_selectedPrize.points+' 积分，当前总积分：'+c.points+' 积分。时间：'+today);
+  closeModal();renderCustomers('');
+  showNotif('已为 '+c.name+' 记录 '+_selectedPrize.label,'success');
+}
+
+// ---- 兑换 ----
+function openRedeem(id){
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===id;});
+  if(!c)return;
+  _currentTarget=id;_selectedReward=null;
+  document.getElementById('redeem-info').textContent=c.name+' 当前积分：'+c.points;
+  var rewards=_gd('rewards')||[];
+  var html='';
+  rewards.forEach(function(r){
+    var can=c.points>=r.points;
+    html+='<div class="redeem-option'+(can?'':' disabled')+'" id="ro-'+r.id+'" onclick="selectReward(\''+r.id+'\','+can+')">';
+    html+='<span style="font-size:20px">'+r.icon+'</span>';
+    html+='<div style="flex:1"><div style="font-weight:600;font-size:13px">'+r.name+'</div><div style="font-size:11px;color:#6B7280">库存 '+r.stock+'</div></div>';
+    html+='<div style="font-weight:700;color:'+(can?'#10B981':'#4B5563')+';font-size:13px">'+r.points+' 积分</div></div>';
+  });
+  document.getElementById('redeem-options').innerHTML=html||'<div style="color:#6B7280;font-size:13px;text-align:center;padding:12px">暂无可兑换奖品</div>';
+  setBtnState('btn-confirm-redeem',false);
+  openModal('redeem');
+}
+
+function selectReward(id,can){
+  if(!can)return;
+  var rewards=_gd('rewards')||[];
+  _selectedReward=rewards.find(function(r){return r.id==id;});
+  document.querySelectorAll('.redeem-option').forEach(function(el){el.classList.remove('selected');});
+  var el=document.getElementById('ro-'+id);if(el)el.classList.add('selected');
+  setBtnState('btn-confirm-redeem',true);
+}
+
+function confirmRedeem(){
+  if(!_selectedReward||!_currentTarget)return;
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===_currentTarget;});
+  if(!c)return;
+  if(c.points<_selectedReward.points){showNotif('积分不足！','error');return;}
+  var today=new Date().toLocaleString('zh-CN');
+  c.points-=_selectedReward.points;
+  c.history.unshift({date:today,prize:'兑换: '+_selectedReward.name,pts:-_selectedReward.points});
+  var rewards=_gd('rewards')||[];
+  var rw=rewards.find(function(r){return r.id==_selectedReward.id;});
+  if(rw&&rw.stock>0)rw.stock--;
+  _sd('rewards',rewards);
+  _sd('customers',customers);
+  addLog('兑换奖品: '+_selectedReward.name+' -'+_selectedReward.points+'积分',c.phone,'管理员');
+  closeModal();renderCustomers('');
+  showNotif(c.name+' 兑换 '+_selectedReward.name+' 成功！','success');
+}
+
+// ---- 历史 ----
+function openHistory(id){
+  var customers=_gd('customers')||[];
+  var c=customers.find(function(x){return x.id===id;});
+  if(!c)return;
+  var modal=document.getElementById('modal-history');
+  modal.querySelector('.modal-title').childNodes[0].textContent='📋 '+c.name+' 的记录 ';
+  var html='';
+  if(!c.history||!c.history.length){html='<div style="color:#6B7280;text-align:center;padding:16px;font-size:13px">暂无记录</div>';}
+  else{c.history.forEach(function(h){
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #1E293B">';
+    html+='<span style="font-size:18px">'+(h.pts>0?'🎯':'🎁')+'</span>';
+    html+='<div style="flex:1"><div style="font-weight:600;font-size:13px">'+h.prize+'</div><div style="font-size:11px;color:#6B7280">'+h.date+'</div></div>';
+    html+='<div style="font-weight:700;color:'+(h.pts>0?'#34D399':'#F87171')+'">'+(h.pts>0?'+':'')+h.pts+'</div></div>';
+  });}
+  document.getElementById('history-list').innerHTML=html;
+  openModal('history');
+}
+
+// ---- 重置密码 ----
+function openResetConfirm(phone,name){
+  _resetTargetPhone=phone;
+  document.getElementById('reset-confirm-name').textContent='用户：'+name+'（'+phone+'）';
+  openModal('reset-confirm');
+}
+
+function doResetPassword(){
+  if(!_resetTargetPhone)return;
+  _sd('upwd_'+_resetTargetPhone,DEFAULT_USER_PWD);
+  _sd('reset_flag_'+_resetTargetPhone,true);
+  sendUserMsg(_resetTargetPhone,'🔔 您的登录密码已被管理员重置，初始密码为：abc12345，请登录后立即修改密码。时间：'+new Date().toLocaleString('zh-CN'));
+  addLog('重置用户密码',_resetTargetPhone,'管理员');
+  closeModal();
+  showNotif('密码已重置，用户将收到通知','success');
+}
+
+// ---- 发消息 ----
+function openDirectMsg(phone){
+  _directMsgPhone=phone;
+  document.getElementById('direct-msg').value='';
+  openModal('send-pts-msg');
+}
+
+function sendDirectMsg(){
+  var content=document.getElementById('direct-msg').value.trim();
+  if(!content){showNotif('请输入消息内容','error');return;}
+  sendUserMsg(_directMsgPhone,content);
+  addLog('发送消息给用户',_directMsgPhone,'管理员');
+  closeModal();
+  showNotif('消息已发送！','success');
+}
+
+function renderMsgTargets(){
+  var customers=_gd('customers')||[];
+  var sel=document.getElementById('msg-target');
+  sel.innerHTML='<option value="">-- 选择用户 --</option>';
+  customers.forEach(function(c){
+    sel.innerHTML+='<option value="'+c.phone+'">'+c.name+' ('+c.phone+')</option>';
+  });
+}
+
+function sendMsg(){
+  var phone=document.getElementById('msg-target').value;
+  var content=document.getElementById('msg-content').value.trim();
+  if(!phone||!content){showNotif('请选择用户并输入内容','error');return;}
+  sendUserMsg(phone,content);
+  addLog('发送消息',phone,'管理员');
+  document.getElementById('msg-content').value='';
+  showNotif('消息已发送！','success');
+}
+
+// ---- 奖品 ----
+function renderRewards(){
+  var rewards=_gd('rewards')||[];
+  if(!rewards.length){document.getElementById('rewards-grid').innerHTML='<div style="color:#6B7280;font-size:13px;text-align:center;padding:16px;grid-column:span 2">暂无奖品</div>';return;}
+  var html='';
+  rewards.forEach(function(r){
+    html+='<div class="reward-card"><div style="font-size:34px;margin-bottom:8px">'+r.icon+'</div>';
+    html+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+r.name+'</div>';
+    html+='<div style="color:#6366F1;font-weight:900;font-size:18px">'+r.points+' <span style="font-size:11px;font-weight:400;color:#6B7280">积分</span></div>';
+    html+='<div style="font-size:11px;color:#6B7280;margin-top:3px">库存 '+r.stock+' 件</div>';
+    html+='<div style="display:flex;gap:6px;justify-content:center;margin-top:10px">';
+    html+='<button class="btn-sm" style="background:#1E293B;color:#94A3B8" onclick="openEditReward(\''+r.id+'\')">✏️ 编辑</button>';
+    html+='<button class="btn-sm" style="background:#1F1010;color:#F87171;border:1px solid #7F1D1D" onclick="deleteReward(\''+r.id+'\',\''+r.name+'\')">🗑️</button>';
+    html+='</div></div>';
+  });
+  document.getElementById('rewards-grid').innerHTML=html;
+}
+
+function openAddReward(){
+  _editRewardId=null;
+  document.getElementById('reward-modal-title').childNodes[0].textContent='➕ 新增奖品 ';
+  ['r-icon','r-name','r-pts','r-stock'].forEach(function(id){document.getElementById(id).value='';});
+  openModal('reward-edit');
+}
+
+function openEditReward(id){
+  var rewards=_gd('rewards')||[];
+  var r=rewards.find(function(x){return x.id==id;});if(!r)return;
+  _editRewardId=id;
+  document.getElementById('reward-modal-title').childNodes[0].textContent='✏️ 编辑奖品 ';
+  document.getElementById('r-icon').value=r.icon;
+  document.getElementById('r-name').value=r.name;
+  document.getElementById('r-pts').value=r.points;
+  document.getElementById('r-stock').value=r.stock;
+  openModal('reward-edit');
+}
+
+function saveReward(){
+  var icon=document.getElementById('r-icon').value.trim()||'🎁';
+  var name=document.getElementById('r-name').value.trim();
+  var pts=parseInt(document.getElementById('r-pts').value)||0;
+  var stock=parseInt(document.getElementById('r-stock').value)||0;
+  if(!name){showNotif('请输入奖品名称','error');return;}
+  var rewards=_gd('rewards')||[];
+  if(_editRewardId){
+    var r=rewards.find(function(x){return x.id==_editRewardId;});
+    if(r){r.icon=icon;r.name=name;r.points=pts;r.stock=stock;}
+    addLog('编辑奖品: '+name,'','管理员');
+  } else {
+    rewards.push({id:Date.now().toString(),icon:icon,name:name,points:pts,stock:stock});
+    addLog('新增奖品: '+name,'','管理员');
+  }
+  _sd('rewards',rewards);
+  closeModal();renderRewards();
+  showNotif('奖品保存成功！','success');
+}
+
+function deleteReward(id,name){
+  if(!confirm('确定删除奖品「'+name+'」？'))return;
+  var rewards=_gd('rewards')||[];
+  rewards=rewards.filter(function(r){return r.id!==id;});
+  _sd('rewards',rewards);
+  addLog('删除奖品: '+name,'','管理员');
+  renderRewards();showNotif('已删除 '+name,'success');
+}
+
+// ---- 奖项 ----
+function getDefaultTiers(){
+  return[
+    {id:'1',label:'一等奖',points:500,emoji:'🥇'},
+    {id:'2',label:'二等奖',points:200,emoji:'🥈'},
+    {id:'3',label:'三等奖',points:100,emoji:'🥉'},
+    {id:'4',label:'幸运奖',points:50,emoji:'🍀'},
+    {id:'5',label:'参与奖',points:10,emoji:'⭐'},
+  ];
+}
+
+function renderPrizeTiers(){
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  if(!tiers.length){document.getElementById('prize-tiers-list').innerHTML='<div style="color:#6B7280;text-align:center;padding:16px;font-size:13px">暂无奖项</div>';return;}
+  var html='';
+  tiers.forEach(function(p){
+    html+='<div class="prize-tier-card">';
+    html+='<span style="font-size:24px">'+(p.emoji||'🏆')+'</span>';
+    html+='<div style="flex:1"><div style="font-weight:700;font-size:14px">'+p.label+'</div><div style="font-size:12px;color:#6B7280">+'+p.points+' 积分</div></div>';
+    html+='<button class="btn-sm" style="background:#1E293B;color:#94A3B8;margin-right:6px" onclick="openEditPrizeTier(\''+p.id+'\')">✏️</button>';
+    html+='<button class="btn-sm" style="background:#1F1010;color:#F87171;border:1px solid #7F1D1D" onclick="deletePrizeTier(\''+p.id+'\',\''+p.label+'\')">🗑️</button>';
+    html+='</div>';
+  });
+  document.getElementById('prize-tiers-list').innerHTML=html;
+}
+
+function openAddPrize(){
+  _editPrizeId=null;
+  document.getElementById('prize-modal-title').childNodes[0].textContent='➕ 新增奖项 ';
+  ['pt-name','pt-pts','pt-emoji'].forEach(function(id){document.getElementById(id).value='';});
+  openModal('prize-edit');
+}
+
+function openEditPrizeTier(id){
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  var p=tiers.find(function(x){return x.id===id;});if(!p)return;
+  _editPrizeId=id;
+  document.getElementById('prize-modal-title').childNodes[0].textContent='✏️ 编辑奖项 ';
+  document.getElementById('pt-name').value=p.label;
+  document.getElementById('pt-pts').value=p.points;
+  document.getElementById('pt-emoji').value=p.emoji||'';
+  openModal('prize-edit');
+}
+
+function savePrizeTier(){
+  var label=document.getElementById('pt-name').value.trim();
+  var pts=parseInt(document.getElementById('pt-pts').value)||0;
+  var emoji=document.getElementById('pt-emoji').value.trim()||'🏆';
+  if(!label){showNotif('请输入奖项名称','error');return;}
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  if(_editPrizeId){
+    var p=tiers.find(function(x){return x.id===_editPrizeId;});
+    if(p){p.label=label;p.points=pts;p.emoji=emoji;}
+  } else {
+    tiers.push({id:Date.now().toString(),label:label,points:pts,emoji:emoji});
+  }
+  _sd('prizeTiers',tiers);
+  closeModal();renderPrizeTiers();
+  showNotif('奖项保存成功！','success');
+}
+
+function deletePrizeTier(id,label){
+  if(!confirm('确定删除奖项「'+label+'」？'))return;
+  var tiers=_gd('prizeTiers')||getDefaultTiers();
+  tiers=tiers.filter(function(p){return p.id!==id;});
+  _sd('prizeTiers',tiers);
+  renderPrizeTiers();showNotif('已删除 '+label,'success');
+}
+
+// ---- 日志 ----
+function renderLogs(){
+  var logs=_gd('logs')||[];
+  var phoneF=document.getElementById('log-phone-filter').value.trim();
+  var dateF=document.getElementById('log-date-filter').value;
+  if(phoneF)logs=logs.filter(function(l){return l.phone&&l.phone.indexOf(phoneF)>=0;});
+  if(dateF)logs=logs.filter(function(l){return l.time&&l.time.indexOf(dateF)>=0;});
+  if(!logs.length){document.getElementById('log-list').innerHTML='<div style="color:#6B7280;text-align:center;padding:16px;font-size:13px">暂无日志</div>';return;}
+  var html='';
+  logs.forEach(function(l){
+    html+='<div class="log-item">';
+    html+='<div><strong>'+l.action+'</strong>'+(l.phone?' · <span style="color:#6B7280">'+l.phone+'</span>':'')+'</div>';
+    html+='<div class="log-time">'+l.time+' · 操作人：'+(l.by||'管理员')+'</div></div>';
+  });
+  document.getElementById('log-list').innerHTML=html;
+}
+
+function clearLogFilter(){
+  document.getElementById('log-phone-filter').value='';
+  document.getElementById('log-date-filter').value='';
+  renderLogs();
+}
+
+// ---- Modal ----
+function openModal(type){
+  document.getElementById('modal-overlay').style.display='flex';
+  var ids=['add','prize','redeem','history','reward-edit','prize-edit','reset-confirm','send-pts-msg'];
+  ids.forEach(function(t){
+    document.getElementById('modal-'+t).style.display=t===type?'block':'none';
+  });
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').style.display='none';
+  _currentTarget=null;_selectedPrize=null;_selectedReward=null;
+  _editRewardId=null;_editPrizeId=null;_resetTargetPhone=null;_directMsgPhone=null;
+  setBtnState('btn-confirm-prize',false);
+  setBtnState('btn-confirm-redeem',false);
+}
+
+function closeModalOverlay(e){if(e.target.id==='modal-overlay')closeModal();}
+
+function setBtnState(id,enabled){
+  var btn=document.getElementById(id);
+  if(btn){btn.style.opacity=enabled?'1':'.4';btn.style.pointerEvents=enabled?'auto':'none';}
+}
+
+// 初始检查锁定
+checkLock();
+</script>
+</body>
+</html>
